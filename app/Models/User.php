@@ -9,10 +9,15 @@ class User{
     private $db;
 
     public function __construct(){
-        $this->db = Database::$conn;
+        $this->db = Database::getConnection();
+        
+        if ($this->db === null) {
+            error_log("Database connection is null in User model");
+        } else {
+            error_log("Database connection successful in User model");
+        }
     }
 
-    // SIGN UP //
     public function register($fullName, $email, $password){
         if($this->findByEmail($email)){
             return ["status" => "error", "message"=> "Email already exists"];
@@ -20,21 +25,22 @@ class User{
 
         $hashedPwd = password_hash($password, PASSWORD_BCRYPT);
 
-        $stmt = $this->db->prepare("INSERT INTO users (name, email, pwd) VALUES (?, ?, ?)");
-
-        $success = $stmt->execute([$fullName, $email, $hashedPwd]);
-
-        if($success) {
+        try {
+            $stmt = $this->db->prepare("INSERT INTO users (name, email, pwd) VALUES (:name, :email, :pwd)");
+            $stmt->execute([
+                ':name' => $fullName,
+                ':email' => $email,
+                ':pwd' => $hashedPwd
+            ]);
+            
             return ["status" => "success", "message" => "Account created successfully"];
+        } catch (\PDOException $e) {
+            error_log("Register error: " . $e->getMessage());
+            return ["status" => "error", "message" => "Signup failed"];
         }
-        return [ "status" => "error", "message" => "Signup failed"];
     }
 
-
-    // LOGIN
-
     public function login($email, $password) {
-
         $user = $this->findByEmail($email);
 
         if(!$user) {
@@ -42,23 +48,22 @@ class User{
         }
 
         if(password_verify($password, $user['pwd'])){
-            return ["status" => "success", "message" => "Login successful","user" => $user];
+            unset($user['pwd']);
+            return ["status" => "success", "message" => "Login successful", "user" => $user];
         }
 
         return ["status" => "error", "message" => "Invalid credentials"];
     }
 
-
-    // FIND USER BY EMAIL
     public function findByEmail($email) {
-
-        $stmt = $this->db->prepare(
-            "SELECT * FROM users WHERE email = ? LIMIT 1"
-        );
-
-        $stmt->execute([$email]);
-
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
+            $stmt->execute([':email' => $email]);
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("FindByEmail error: " . $e->getMessage());
+            return null;
+        }
     }
-
 }

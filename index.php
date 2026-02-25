@@ -1,10 +1,20 @@
 <?php
 session_start();
 
+// Load environment variables
+require_once __DIR__ . '/app/core/Env.php';
+App\Core\Env::load();
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 use FastRoute\RouteCollector;
 use App\Controllers\AuthController;
+
+// Initialize database connection
+require_once __DIR__ . '/app/core/Database.php';
+new App\Core\Database(); // This establishes the connection
+
+error_log("DB_NAME: " . App\Core\Env::get('DB_NAME'));
 
 // Prevent direct access to PHP files
 $requestedFile = $_SERVER['SCRIPT_NAME'];
