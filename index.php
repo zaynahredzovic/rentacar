@@ -1,10 +1,25 @@
 <?php
 session_start();
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 use FastRoute\RouteCollector;
 use App\Controllers\AuthController;
+
+// Prevent direct access to PHP files
+$requestedFile = $_SERVER['SCRIPT_NAME'];
+if (strpos($requestedFile, '.php') !== false && $requestedFile !== '/index.php') {
+    // Redirect to the appropriate route
+    $path = str_replace('.php', '', basename($requestedFile));
+    if ($path === 'login') {
+        header('Location: /rentacar/public/');
+        exit;
+    } elseif ($path === 'signup') {
+        header('Location: /rentacar/public/signup');
+        exit;
+    }
+}
+
 
 // Initialize Dispatcher
 $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
@@ -16,9 +31,6 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
     // API
     $r->addRoute('POST', '/api/login', 'App\Controllers\AuthController@loginPost');
     $r->addRoute('POST', '/api/signup', 'App\Controllers\AuthController@signupPost');
-
-    // Dashboard (example protected page)
-    $r->addRoute('GET', '/dashboard', 'App\Controllers\DashboardController@index');
 });
 
 // Fetch method and URI
@@ -30,6 +42,17 @@ if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
 }
 
+//Remove the base
+$basePath = '/rentacar';
+if (strpos($uri, $basePath) === 0) {
+    $uri = substr($uri, strlen($basePath));
+}
+
+// If URI is empty after removing base path, set it to '/'
+if (empty($uri)) {
+    $uri = '/';
+}
+
 // Decode URI
 $uri = rawurldecode($uri);
 
@@ -38,7 +61,8 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
-        echo "404 - Page not found";
+        // You can remove this debug line after testing
+        echo "404 - Page not found for URI: " . $uri;
         break;
 
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:

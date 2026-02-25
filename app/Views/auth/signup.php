@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../../../public/css/style.css">
+    <link rel="stylesheet" href="/rentacar/public/css/style.css">
     <title>Rent a car - Signup</title>
 </head>
 <body>
@@ -19,10 +19,11 @@
         </form>
 
         <p id="responseMsg"></p>
+        <p>Already have an account? <a href="/rentacar/">Log In</a></p>
 
     </div>
 
-    <script src="../../../public/js/jquery.min.js"></script>
-    <script src="../../../public/js/signup.js"></script>
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/signup.js"></script>
 </body>
 </html>
