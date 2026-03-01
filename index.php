@@ -1,20 +1,33 @@
 <?php
 session_start();
 
-// Load environment variables
-require_once __DIR__ . '/app/core/Env.php';
-App\Core\Env::load();
-
+// First, include the autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
+// Then you can use Dotenv
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+require_once __DIR__ . '/app/core/Database.php';
 use FastRoute\RouteCollector;
 use App\Controllers\AuthController;
 
 // Initialize database connection
-require_once __DIR__ . '/app/core/Database.php';
 new App\Core\Database(); // This establishes the connection
 
 error_log("DB_NAME: " . App\Core\Env::get('DB_NAME'));
+
+// Get the base path dynamically
+$scriptPath = $_SERVER['SCRIPT_NAME'];
+$basePath = rtrim(dirname($scriptPath), '/\\');
+
+// Remove 'public' from the path if present (since index.php might be in public folder)
+$basePath = str_replace('/public', '', $basePath);
+
+// If basePath is empty, set it to empty string (for root installations)
+if ($basePath == '.' || $basePath == '\\') {
+    $basePath = '';
+}
 
 // Prevent direct access to PHP files
 $requestedFile = $_SERVER['SCRIPT_NAME'];
@@ -22,14 +35,13 @@ if (strpos($requestedFile, '.php') !== false && $requestedFile !== '/index.php')
     // Redirect to the appropriate route
     $path = str_replace('.php', '', basename($requestedFile));
     if ($path === 'login') {
-        header('Location: /rentacar/public/');
+        header('Location: ' . $basePath . '/');
         exit;
     } elseif ($path === 'signup') {
-        header('Location: /rentacar/public/signup');
+        header('Location: ' . $basePath . '/signup');
         exit;
     }
 }
-
 
 // Initialize Dispatcher
 $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
@@ -52,9 +64,8 @@ if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
 }
 
-//Remove the base
-$basePath = '/rentacar';
-if (strpos($uri, $basePath) === 0) {
+// Remove the base path dynamically
+if (!empty($basePath) && strpos($uri, $basePath) === 0) {
     $uri = substr($uri, strlen($basePath));
 }
 
@@ -71,7 +82,6 @@ $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
-        // You can remove this debug line after testing
         echo "404 - Page not found for URI: " . $uri;
         break;
 
