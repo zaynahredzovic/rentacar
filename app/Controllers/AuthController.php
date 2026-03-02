@@ -17,9 +17,8 @@ class AuthController {
 
     // SIGNUP API
     public function signupPost() {
-
         header('Content-Type: application/json');
-
+        
         $userModel = new User();
 
         if(!isset($_POST['fullName']) || !isset($_POST['email']) || !isset($_POST['password'])){
@@ -28,7 +27,7 @@ class AuthController {
         }
 
         $result = $userModel->register(
-            $_POST['fullname'],
+            $_POST['fullName'], 
             $_POST['email'],
             $_POST['password']
         );
@@ -38,10 +37,6 @@ class AuthController {
 
     // LOGIN API
     public function loginPost() {
-
-    error_log("loginPost called");
-    error_log("POST data: " . print_r($_POST, true));
-
         header('Content-Type: application/json');
 
         if(!isset($_POST['email']) || !isset($_POST['password'])){

@@ -23,7 +23,7 @@
     </div>
 
     <script src="/rentacar/public/js/jquery.min.js"></script>
-    <script src="/rentacar/public/js/form.js"></script>
-    <script src="/rentacar/public/js/login.js"></script>
+    <script src="/rentacar/public/js/form.js?v=<?php echo time(); ?>"></script>
+    <script src="/rentacar/public/js/login.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

@@ -47,6 +47,12 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
 
+// DEBUG: Log the incoming request
+error_log("=== INCOMING REQUEST ===");
+error_log("Method: " . $httpMethod);
+error_log("Original URI: " . $uri);
+error_log("POST data: " . print_r($_POST, true));
+
 // Remove query string (?foo=bar) if present
 if (false !== $pos = strpos($uri, '?')) {
     $uri = substr($uri, 0, $pos);
@@ -66,17 +72,24 @@ if (empty($uri)) {
 // Decode URI
 $uri = rawurldecode($uri);
 
+// DEBUG: Log the processed URI
+error_log("Processed URI: " . $uri);
+
 // Dispatch the route
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
+// DEBUG: Log the route info
+error_log("Route info: " . print_r($routeInfo, true));
+
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
-        // You can remove this debug line after testing
+        error_log("404 - Page not found for URI: " . $uri);
         echo "404 - Page not found for URI: " . $uri;
         break;
 
     case FastRoute\Dispatcher::METHOD_NOT_ALLOWED:
         $allowedMethods = $routeInfo[1];
+        error_log("405 - Method not allowed. Allowed: " . implode(', ', $allowedMethods));
         echo "405 - Method not allowed";
         break;
 
@@ -84,14 +97,19 @@ switch ($routeInfo[0]) {
         $handler = $routeInfo[1]; 
         $vars = $routeInfo[2]; 
 
+        error_log("Route found! Handler: " . $handler);
+        
         // Split controller and method
         list($class, $method) = explode('@', $handler);
+
+        error_log("Calling controller: " . $class . "::" . $method);
 
         // Instantiate controller and call method
         if(class_exists($class)) {
             $controller = new $class();
             call_user_func_array([$controller, $method], $vars);
         } else {
+            error_log("Controller $class not found");
             echo "Controller $class not found";
         }
         break;

@@ -26,15 +26,15 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     if(passwordError) passwordError.innerHTML = '';
 
     // Get form data
-    const formData = {
-        fullname: fullNameInput.value,
+    const userData = {
+        fullName: fullNameInput.value,
         email: emailInput.value,
-        password: passwordInput.value,
-    }
+        password: passwordInput.value
+    };
 
     // Validations
     // Name validation
-    if(!formData.fullname || formData.fullname.trim() === '') {
+    if(!userData.fullName || userData.fullName.trim() === '') {
         if(nameError) nameError.innerHTML = 'Full name is required';
         nameStatus = false;
     } else {
@@ -43,10 +43,10 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if(!formData.email) {
+    if(!userData.email) {
         if(emailError) emailError.innerHTML = 'Email is required';
         emailStatus = false;
-    } else if(!emailRegex.test(formData.email)) {
+    } else if(!emailRegex.test(userData.email)) {
         if(emailError) emailError.innerHTML = 'Please enter a valid email';
         emailStatus = false;
     } else {
@@ -54,10 +54,10 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     }
 
     // Password validation
-    if(!formData.password) {
+    if(!userData.password) {
         if(passwordError) passwordError.innerHTML = 'Password is required';
         passwordStatus = false;
-    } else if(formData.password.length < 6) {
+    } else if(userData.password.length < 6) {
         if(passwordError) passwordError.innerHTML = 'Password must be at least 6 characters';
         passwordStatus = false;
     } else {
@@ -67,7 +67,7 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
     // If all validations pass, use submitForm
     if(nameStatus && emailStatus && passwordStatus) {
         
-        // Custom success callback
+        // Success callback
         const onSuccess = function(response, form) {
             if(response.status === 'success'){
                 responseMsg.className = 'success';
@@ -86,7 +86,7 @@ document.getElementById('signupForm').addEventListener('submit', function(e) {
             }
         };
         
-        // Use the reusable function
-        submitForm('signupForm', '/rentacar/api/signup', 'POST', onSuccess);
+        // Call submitForm with the data
+        submitForm('signupForm', '/rentacar/api/signup', 'POST', userData, onSuccess);
     }
 });

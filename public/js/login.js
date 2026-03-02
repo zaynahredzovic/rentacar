@@ -51,5 +51,5 @@ loginForm.addEventListener("submit", (e) => {
         }
     }
 
-    submitForm('loginForm', '/rentacar/api/login', 'POST', onSuccess);
+    submitForm('loginForm', '/rentacar/api/login', 'POST', formData, onSuccess);
 })
