@@ -15,7 +15,6 @@ use App\Controllers\AuthController;
 // Initialize database connection
 new App\Core\Database(); // This establishes the connection
 
-error_log("DB_NAME: " . App\Core\Env::get('DB_NAME'));
 
 // Prevent direct access to PHP files
 $requestedFile = $_SERVER['SCRIPT_NAME'];
