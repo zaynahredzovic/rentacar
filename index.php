@@ -37,6 +37,9 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
     $r->addRoute('GET', '/', 'App\Controllers\AuthController@login');
     $r->addRoute('GET', '/signup', 'App\Controllers\AuthController@signup');
 
+    // Dashboard (protected)
+    $r->addRoute('GET', '/dashboard', 'App\Controllers\DashboardController@index');
+
     // API
     $r->addRoute('POST', '/api/login', 'App\Controllers\AuthController@loginPost');
     $r->addRoute('POST', '/api/signup', 'App\Controllers\AuthController@signupPost');
@@ -46,11 +49,6 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
 $httpMethod = $_SERVER['REQUEST_METHOD'];
 $uri = $_SERVER['REQUEST_URI'];
 
-// DEBUG: Log the incoming request
-error_log("=== INCOMING REQUEST ===");
-error_log("Method: " . $httpMethod);
-error_log("Original URI: " . $uri);
-error_log("POST data: " . print_r($_POST, true));
 
 // Remove query string (?foo=bar) if present
 if (false !== $pos = strpos($uri, '?')) {
@@ -59,10 +57,10 @@ if (false !== $pos = strpos($uri, '?')) {
 
 // Remove the base path
 $basePath = '/rentacar';
-if (strpos($uri, $basePath) === 0) {
+while (strpos($uri, $basePath) === 0) {
     $uri = substr($uri, strlen($basePath));
+    error_log("Removed base path, now URI: " . $uri);
 }
-
 // If URI is empty after removing base path, set it to '/'
 if (empty($uri)) {
     $uri = '/';
@@ -71,14 +69,11 @@ if (empty($uri)) {
 // Decode URI
 $uri = rawurldecode($uri);
 
-// DEBUG: Log the processed URI
-error_log("Processed URI: " . $uri);
+
 
 // Dispatch the route
 $routeInfo = $dispatcher->dispatch($httpMethod, $uri);
 
-// DEBUG: Log the route info
-error_log("Route info: " . print_r($routeInfo, true));
 
 switch ($routeInfo[0]) {
     case FastRoute\Dispatcher::NOT_FOUND:
