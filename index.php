@@ -41,9 +41,18 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
     // Dashboard (protected)
     $r->addRoute('GET', '/dashboard', 'App\Controllers\DashboardController@index');
 
-    // API
+    // API for auth
     $r->addRoute('POST', '/api/login', 'App\Controllers\AuthController@loginPost');
     $r->addRoute('POST', '/api/signup', 'App\Controllers\AuthController@signupPost');
+
+    // API for categories
+    $r->addRoute('GET', '/api/categories', 'App\Controllers\CategoryController@list');
+    $r->addRoute('GET', '/api/categories/count', 'App\Controllers\CategoryController@listWithCount');
+
+    $r->addRoute('POST', '/api/categories', 'App\Controllers\CategoryController@create');
+    $r->addRoute('PUT', '/api/categories/{id}', 'App\Controllers\CategoryController@update');
+
+    $r->addRoute('DELETE', '/api/categories/{id}', 'App\Controllers\CategoryController@delete');
 });
 
 // Fetch method and URI
