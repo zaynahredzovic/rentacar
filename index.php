@@ -53,6 +53,14 @@ $dispatcher = FastRoute\simpleDispatcher(function(RouteCollector $r) {
     $r->addRoute('PUT', '/api/categories/{id}', 'App\Controllers\CategoryController@update');
 
     $r->addRoute('DELETE', '/api/categories/{id}', 'App\Controllers\CategoryController@delete');
+
+    //Car routes
+    $r->addRoute('GET', '/api/cars', 'App\Controllers\CarController@list');
+    $r->addRoute('GET', '/api/cars/{id}', 'App\Controllers\CarController@get');
+    $r->addRoute('POST', '/api/cars', 'App\Controllers\CarController@create');
+    $r->addRoute('PUT', '/api/cars/{id}', 'App\Controllers\CarController@update');
+    $r->addRoute('DELETE', '/api/cars/{id}', 'App\Controllers\CarController@delete');
+    $r->addRoute('POST', '/api/cars/{id}/toggle', 'App\Controllers\CarController@toggleStatus');
 });
 
 // Fetch method and URI
