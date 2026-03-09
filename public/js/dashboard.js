@@ -32,6 +32,9 @@ $(document).ready(function() {
                         }
                     }
                 }
+            },
+            error: function(xhr, status, error) {
+                console.error('Failed to load categories:', error);
             }
         });
     }
@@ -42,15 +45,20 @@ $(document).ready(function() {
     $('#category_id').on('change', function() {
         if ($(this).val() === 'new') {
             $('.new-category-group').slideDown(200);
+            $('#new_category').focus();
         } else {
             $('.new-category-group').slideUp(200);
+            $('#new_category').val('');
+            $('.newCategoryError').text('');
         }
     });
     
     // ============================================
-    // ADD NEW CATEGORY
+    // ADD NEW CATEGORY - USING FORM.JS
     // ============================================
-    $('#addCategoryBtn').on('click', function() {
+    $('#addCategoryBtn').on('click', function(e) {
+        e.preventDefault();
+        
         const categoryName = $('#new_category').val().trim();
         
         if (!categoryName) {
@@ -58,18 +66,22 @@ $(document).ready(function() {
             return;
         }
         
+        if (categoryName.length < 2) {
+            $('.newCategoryError').text('Category name must be at least 2 characters');
+            return;
+        }
+        
         $('.newCategoryError').text('');
         
-        const $btn = $(this);
-        const originalText = $btn.text();
-        $btn.text('Adding...').prop('disabled', true);
-        
-        $.ajax({
-            url: '/rentacar/api/categories',
-            type: 'POST',
-            data: { name: categoryName },
-            dataType: 'json',
-            success: function(response) {
+        // Use the form.js helper function
+        submitForm(
+            'addCategoryForm', // form ID (we don't actually have this form, but the function expects it)
+            '/rentacar/api/categories',
+            'POST',
+            { name: categoryName },
+            function(response) { // Success callback
+                console.log('Category added:', response);
+                
                 if (response.status === 'success') {
                     $('#carResponseMsg')
                         .removeClass('error')
@@ -86,28 +98,42 @@ $(document).ready(function() {
                         $('#carResponseMsg').fadeOut();
                     }, 2000);
                 } else {
-                    $('.newCategoryError').text(response.message);
+                    $('.newCategoryError').text(response.message || 'Failed to add category');
                 }
             },
-            error: function() {
-                $('.newCategoryError').text('Failed to add category');
-            },
-            complete: function() {
-                $btn.text(originalText).prop('disabled', false);
+            function(xhr, status, error) { // Error callback
+                console.error('Error adding category:', error);
+                let errorMessage = 'Failed to add category';
+                
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMessage = response.message || errorMessage;
+                } catch(e) {
+                    if (xhr.status === 409) {
+                        errorMessage = 'Category already exists';
+                    }
+                }
+                
+                $('.newCategoryError').text(errorMessage);
             }
-        });
+        );
     });
     
     // ============================================
-    // ADD CAR FORM
+    // ADD CAR FORM - USING FORM.JS
     // ============================================
     $('#addCarForm').on('submit', function(e) {
         e.preventDefault();
         
         const selectedCategory = $('#category_id').val();
         
-        if (selectedCategory === 'new' || !selectedCategory) {
-            $('.categoryError').text('Please select a valid category');
+        if (selectedCategory === 'new') {
+            $('.categoryError').text('Please add the new category first or select an existing one');
+            return false;
+        }
+        
+        if (!selectedCategory) {
+            $('.categoryError').text('Please select a category');
             return false;
         }
         
@@ -143,20 +169,24 @@ $(document).ready(function() {
         
         if (!isValid) return false;
         
+        // Create FormData for file upload
         const formData = new FormData(this);
         
-        const $btn = $('#addCarBtn');
-        const originalText = $btn.text();
-        $btn.text('Adding Car...').prop('disabled', true);
+        // Convert FormData to plain object for form.js
+        const formDataObj = {};
+        formData.forEach((value, key) => {
+            formDataObj[key] = value;
+        });
         
-        $.ajax({
-            url: '/rentacar/api/cars',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            dataType: 'json',
-            success: function(response) {
+        // Use the form.js helper function
+        submitForm(
+            'addCarForm',
+            '/rentacar/api/cars',
+            'POST',
+            formDataObj,
+            function(response) { // Success callback
+                console.log('Car added:', response);
+                
                 if (response.status === 'success') {
                     $('#carResponseMsg')
                         .removeClass('error')
@@ -179,11 +209,22 @@ $(document).ready(function() {
                         .show();
                 }
             },
-            error: function(xhr) {
+            function(xhr, status, error) { // Error callback
+                console.error('Error adding car:', error);
                 let errorMessage = 'Failed to add car';
+                
                 try {
                     const response = JSON.parse(xhr.responseText);
                     errorMessage = response.message || errorMessage;
+                    
+                    if (response.errors) {
+                        if (response.errors.title) $('.titleError').text(response.errors.title[0]);
+                        if (response.errors.description) $('.descriptionError').text(response.errors.description[0]);
+                        if (response.errors.price_per_day) $('.priceError').text(response.errors.price_per_day[0]);
+                        if (response.errors.category_id) $('.categoryError').text(response.errors.category_id[0]);
+                        if (response.errors.image) $('.imageError').text(response.errors.image[0]);
+                        return;
+                    }
                 } catch(e) {}
                 
                 $('#carResponseMsg')
@@ -191,11 +232,8 @@ $(document).ready(function() {
                     .addClass('error')
                     .text(errorMessage)
                     .show();
-            },
-            complete: function() {
-                $btn.text(originalText).prop('disabled', false);
             }
-        });
+        );
     });
     
     // ============================================
@@ -274,6 +312,7 @@ $(document).ready(function() {
     // HELPER: ESCAPE HTML
     // ============================================
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -285,6 +324,23 @@ $(document).ready(function() {
     $('#image').on('change', function() {
         const file = this.files[0];
         if (file) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                $('.imageError').text('Please select a valid image file (JPEG, PNG, GIF)');
+                $(this).val('');
+                $('#imagePreview').empty();
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                $('.imageError').text('Image size should be less than 5MB');
+                $(this).val('');
+                $('#imagePreview').empty();
+                return;
+            }
+            
+            $('.imageError').text('');
+            
             const reader = new FileReader();
             reader.onload = function(e) {
                 $('#imagePreview').html(`<img src="${e.target.result}" style="max-width:100%; border-radius:8px;">`);
@@ -292,6 +348,16 @@ $(document).ready(function() {
             reader.readAsDataURL(file);
         } else {
             $('#imagePreview').empty();
+        }
+    });
+    
+    // ============================================
+    // PRESS ENTER IN CATEGORY INPUT
+    // ============================================
+    $('#new_category').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            $('#addCategoryBtn').click();
         }
     });
     
