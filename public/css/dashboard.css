@@ -35,7 +35,6 @@
     font-size: 24px;
 }
 
-
 .nav-links {
     display: flex;
     align-items: center;
@@ -100,6 +99,17 @@
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .card-header {
@@ -204,6 +214,14 @@
     cursor: pointer;
 }
 
+/* Error Text */
+.error-text {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
 /* Image Preview */
 .image-preview {
     margin-top: 10px;
@@ -217,6 +235,7 @@
     width: 100%;
     height: auto;
     display: block;
+    border-radius: 8px;
 }
 
 /* Filter Buttons */
@@ -261,6 +280,25 @@
     padding-right: 10px;
 }
 
+/* Custom Scrollbar for Cars Grid */
+.cars-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cars-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.cars-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+.cars-grid::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
 /* Car Card */
 .car-card {
     background: #f8f9fa;
@@ -302,6 +340,7 @@
     color: #333;
     font-size: 16px;
     font-weight: 600;
+    margin: 0;
 }
 
 .car-status {
@@ -385,7 +424,7 @@
     border: 1px solid #f5c6cb;
 }
 
-/* Input with Button */
+/* Input with Button - NEW CATEGORY SECTION */
 .input-with-button {
     display: flex;
     gap: 10px;
@@ -405,11 +444,96 @@
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: 'Poppins', sans-serif;
+    white-space: nowrap;
+    min-width: 120px;
 }
 
-.btn-small:hover {
+.btn-small:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-small:disabled {
+    background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* New Category Group */
+.new-category-group {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 15px 0;
+    border: 2px solid #e0e0e0;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Category Loading State */
+.category-loading {
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-loading::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid #667eea;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success Text */
+.success-text {
+    color: #28a745;
+    font-size: 14px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* No Cars Found Message */
+.no-cars {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 14px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px dashed #e0e0e0;
+}
+
+/* Error Message */
+.error-message {
+    text-align: center;
+    padding: 40px;
+    color: #dc3545;
+    font-size: 14px;
+    background: #f8d7da;
+    border-radius: 10px;
+    border: 1px solid #f5c6cb;
 }
 
 /* Responsive Design */
@@ -427,6 +551,17 @@
     }
 }
 
+@media screen and (max-width: 768px) {
+    .input-with-button {
+        flex-direction: column;
+    }
+    
+    .btn-small {
+        width: 100%;
+        padding: 12px;
+    }
+}
+
 @media screen and (max-width: 480px) {
     .nav-container {
         flex-direction: column;
@@ -441,5 +576,14 @@
     .card-header {
         flex-direction: column;
         gap: 15px;
+    }
+    
+    .filter-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 28px;
     }
 }
