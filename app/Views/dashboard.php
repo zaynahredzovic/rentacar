@@ -65,22 +65,19 @@
                                 <label for="category_id">Category</label>
                                 <select id="category_id" name="category_id" required>
                                     <option value="">Select a category</option>
-                                    <option value="new">+ Add New Category</option>
                                     <!-- Categories will be loaded via AJAX -->
                                 </select>
                                 <span class="error-text categoryError"></span>
                             </div>
                         </div>
 
-                        <!-- New Category Option (shown when "Add New" selected) - WITH UNIQUE FORM ID -->
+                        <!-- New Category Section - NO NESTED FORM -->
                         <div class="form-group new-category-group" style="display: none;">
                             <label for="new_category">New Category Name</label>
-                            <form id="addNewCategoryForm" onsubmit="return false;">
-                                <div class="input-with-button">
-                                    <input type="text" id="new_category" name="name" placeholder="Enter new category">
-                                    <button type="submit" id="addCategoryBtn" class="btn-small">Add</button>
-                                </div>
-                            </form>
+                            <div class="input-with-button">
+                                <input type="text" id="new_category" name="new_category" placeholder="Enter new category">
+                                <button type="button" id="addCategoryBtn" class="btn-small">Add Category</button>
+                            </div>
                             <span class="error-text newCategoryError"></span>
                         </div>
 
