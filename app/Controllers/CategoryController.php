@@ -68,6 +68,13 @@ class CategoryController{
 
         $name = trim($input['name']);
 
+        //regex validation
+        if(!preg_match('/^[a-zA-Z0-9\s]+$/', $name)){
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Name can only contain letters, numbers and spaces']);
+            return;
+        }
+
         $result = $this->categoryModel->create($name);
 
         echo json_encode($result);
@@ -95,6 +102,14 @@ class CategoryController{
         }
 
         $name = trim($input['name']);
+
+        //regex validation
+        if(!preg_match('/^[a-zA-Z0-9\s]+$/', $name)){
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Name can only contain letters, numbers and spaces']);
+            return;
+        }
+
         $result = $this->categoryModel->update($id, $name);
 
         echo json_encode($result);

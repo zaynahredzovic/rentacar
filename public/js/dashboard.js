@@ -50,6 +50,23 @@ $(document).ready(function() {
             $('.new-category-group').slideUp(200);
             $('#new_category').val('');
             $('.newCategoryError').text('');
+            $('#new_category').css('border-color', '');
+        }
+    });
+    
+    // ============================================
+    // REAL-TIME VALIDATION FOR CATEGORY INPUT
+    // ============================================
+    $('#new_category').on('input', function() {
+        const value = $(this).val();
+        const regex = /^[a-zA-Z0-9\s]*$/;
+        
+        if (value && !regex.test(value)) {
+            $(this).css('border-color', '#dc3545');
+            $('.newCategoryError').text('Special characters are not allowed. Only letters, numbers and spaces.');
+        } else {
+            $(this).css('border-color', '');
+            $('.newCategoryError').text('');
         }
     });
     
@@ -61,26 +78,45 @@ $(document).ready(function() {
         
         const categoryName = $('#new_category').val().trim();
         
+        // Clear previous errors
+        $('.newCategoryError').text('');
+        $('#new_category').css('border-color', '');
+        
+        // Validation
         if (!categoryName) {
             $('.newCategoryError').text('Category name is required');
+            $('#new_category').css('border-color', '#dc3545');
             return;
         }
         
         if (categoryName.length < 2) {
             $('.newCategoryError').text('Category name must be at least 2 characters');
+            $('#new_category').css('border-color', '#dc3545');
             return;
         }
         
-        $('.newCategoryError').text('');
+        // REGEX VALIDATION - Block special characters
+        const regex = /^[a-zA-Z0-9\s]+$/;
+        if (!regex.test(categoryName)) {
+            $('.newCategoryError').text('Category name cannot contain special characters. Only letters, numbers and spaces are allowed.');
+            $('#new_category').css('border-color', '#dc3545');
+            return;
+        }
+        
+        // Disable button to prevent double submission
+        $(this).prop('disabled', true);
         
         // Use the form.js helper function
         submitForm(
-            'addCategoryForm', // form ID (we don't actually have this form, but the function expects it)
+            'addCategoryForm',
             '/rentacar/api/categories',
             'POST',
             { name: categoryName },
             function(response) { // Success callback
                 console.log('Category added:', response);
+                
+                // Re-enable button
+                $('#addCategoryBtn').prop('disabled', false);
                 
                 if (response.status === 'success') {
                     $('#carResponseMsg')
@@ -90,6 +126,7 @@ $(document).ready(function() {
                         .show();
                     
                     $('#new_category').val('');
+                    $('#new_category').css('border-color', '');
                     loadCategories();
                     $('.new-category-group').slideUp(200);
                     $('#category_id').val('');
@@ -99,22 +136,47 @@ $(document).ready(function() {
                     }, 2000);
                 } else {
                     $('.newCategoryError').text(response.message || 'Failed to add category');
+                    $('#new_category').css('border-color', '#dc3545');
                 }
             },
             function(xhr, status, error) { // Error callback
                 console.error('Error adding category:', error);
+                
+                // Re-enable button
+                $('#addCategoryBtn').prop('disabled', false);
+                
                 let errorMessage = 'Failed to add category';
                 
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    errorMessage = response.message || errorMessage;
-                } catch(e) {
-                    if (xhr.status === 409) {
-                        errorMessage = 'Category already exists';
+                // Try to get error message from response
+                if (xhr.responseJSON) {
+                    errorMessage = xhr.responseJSON.message || errorMessage;
+                } else {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage = response.message || errorMessage;
+                    } catch(e) {
+                        if (xhr.status === 409) {
+                            errorMessage = 'Category already exists';
+                        } else if (xhr.status === 400) {
+                            errorMessage = 'Invalid category name. Only letters, numbers and spaces are allowed.';
+                        }
                     }
                 }
                 
+                // DISPLAY ERROR MESSAGE IN UI
                 $('.newCategoryError').text(errorMessage);
+                $('#new_category').css('border-color', '#dc3545');
+                
+                // Also show in main response message
+                $('#carResponseMsg')
+                    .removeClass('success')
+                    .addClass('error')
+                    .text(errorMessage)
+                    .show();
+                
+                setTimeout(function() {
+                    $('#carResponseMsg').fadeOut();
+                }, 3000);
             }
         );
     });
@@ -169,6 +231,9 @@ $(document).ready(function() {
         
         if (!isValid) return false;
         
+        // Disable submit button
+        $('#addCarBtn').prop('disabled', true);
+        
         // Create FormData for file upload
         const formData = new FormData(this);
         
@@ -186,6 +251,9 @@ $(document).ready(function() {
             formDataObj,
             function(response) { // Success callback
                 console.log('Car added:', response);
+                
+                // Re-enable button
+                $('#addCarBtn').prop('disabled', false);
                 
                 if (response.status === 'success') {
                     $('#carResponseMsg')
@@ -211,21 +279,29 @@ $(document).ready(function() {
             },
             function(xhr, status, error) { // Error callback
                 console.error('Error adding car:', error);
+                
+                // Re-enable button
+                $('#addCarBtn').prop('disabled', false);
+                
                 let errorMessage = 'Failed to add car';
                 
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    errorMessage = response.message || errorMessage;
+                if (xhr.responseJSON) {
+                    errorMessage = xhr.responseJSON.message || errorMessage;
                     
-                    if (response.errors) {
-                        if (response.errors.title) $('.titleError').text(response.errors.title[0]);
-                        if (response.errors.description) $('.descriptionError').text(response.errors.description[0]);
-                        if (response.errors.price_per_day) $('.priceError').text(response.errors.price_per_day[0]);
-                        if (response.errors.category_id) $('.categoryError').text(response.errors.category_id[0]);
-                        if (response.errors.image) $('.imageError').text(response.errors.image[0]);
+                    if (xhr.responseJSON.errors) {
+                        if (xhr.responseJSON.errors.title) $('.titleError').text(xhr.responseJSON.errors.title[0]);
+                        if (xhr.responseJSON.errors.description) $('.descriptionError').text(xhr.responseJSON.errors.description[0]);
+                        if (xhr.responseJSON.errors.price_per_day) $('.priceError').text(xhr.responseJSON.errors.price_per_day[0]);
+                        if (xhr.responseJSON.errors.category_id) $('.categoryError').text(xhr.responseJSON.errors.category_id[0]);
+                        if (xhr.responseJSON.errors.image) $('.imageError').text(xhr.responseJSON.errors.image[0]);
                         return;
                     }
-                } catch(e) {}
+                } else {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage = response.message || errorMessage;
+                    } catch(e) {}
+                }
                 
                 $('#carResponseMsg')
                     .removeClass('success')
