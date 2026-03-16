@@ -123,6 +123,8 @@
 
     <script src="/rentacar/public/js/jquery.min.js"></script>
     <script src="/rentacar/public/js/form.js"></script>
+    <script src="/rentacar/public/js/category-ajax.js"></script>
+    <script src="/rentacar/public/js/car-ajax.js"></script>
     <script src="/rentacar/public/js/dashboard.js"></script>
 </body>
 </html>

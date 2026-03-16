@@ -1,43 +1,10 @@
 $(document).ready(function() {
+    console.log('Dashboard initialized');
     
     // ============================================
-    // LOAD CATEGORIES FOR DROPDOWN
+    // LOAD CATEGORIES ON PAGE LOAD
     // ============================================
-    function loadCategories() {
-        $.ajax({
-            url: '/rentacar/api/categories',
-            type: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    const $select = $('#category_id');
-                    const currentVal = $select.val();
-                    
-                    // Clear all options except first
-                    $select.find('option').slice(1).remove();
-                    
-                    // Add categories
-                    response.data.forEach(function(category) {
-                        $select.append(`<option value="${category.id}">${category.name}</option>`);
-                    });
-                    
-                    // Add the "Add New" option at the end
-                    $select.append(`<option value="new">+ Add New Category</option>`);
-                    
-                    // Restore selection if it still exists
-                    if (currentVal && currentVal !== 'new') {
-                        const stillExists = response.data.some(c => c.id == currentVal);
-                        if (stillExists) {
-                            $select.val(currentVal);
-                        }
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Failed to load categories:', error);
-            }
-        });
-    }
+    CategoryAjax.loadCategories('#category_id');
     
     // ============================================
     // TOGGLE NEW CATEGORY INPUT
@@ -55,7 +22,7 @@ $(document).ready(function() {
     });
     
     // ============================================
-    // REAL-TIME VALIDATION FOR CATEGORY INPUT
+    // REAL-TIME VALIDATION FOR CATEGORY
     // ============================================
     $('#new_category').on('input', function() {
         const value = $(this).val();
@@ -63,7 +30,7 @@ $(document).ready(function() {
         
         if (value && !regex.test(value)) {
             $(this).css('border-color', '#dc3545');
-            $('.newCategoryError').text('Special characters are not allowed. Only letters, numbers and spaces.');
+            $('.newCategoryError').text('Only letters, numbers and spaces allowed');
         } else {
             $(this).css('border-color', '');
             $('.newCategoryError').text('');
@@ -71,66 +38,60 @@ $(document).ready(function() {
     });
     
     // ============================================
-    // ADD NEW CATEGORY - USING FORM.JS
+    // ADD CATEGORY BUTTON
     // ============================================
-    $('#addCategoryBtn').on('click', function(e) {
-        e.preventDefault();
-        
-        const categoryName = $('#new_category').val().trim();
+    $('#addCategoryBtn').on('click', function() {
+        const name = $('#new_category').val().trim();
         
         // Clear previous errors
         $('.newCategoryError').text('');
         $('#new_category').css('border-color', '');
         
         // Validation
-        if (!categoryName) {
+        if (!name) {
             $('.newCategoryError').text('Category name is required');
             $('#new_category').css('border-color', '#dc3545');
             return;
         }
         
-        if (categoryName.length < 2) {
+        if (name.length < 2) {
             $('.newCategoryError').text('Category name must be at least 2 characters');
             $('#new_category').css('border-color', '#dc3545');
             return;
         }
         
-        // REGEX VALIDATION - Block special characters
-        const regex = /^[a-zA-Z0-9\s]+$/;
-        if (!regex.test(categoryName)) {
-            $('.newCategoryError').text('Category name cannot contain special characters. Only letters, numbers and spaces are allowed.');
+        if (!/^[a-zA-Z0-9\s]+$/.test(name)) {
+            $('.newCategoryError').text('No special characters allowed. Only letters, numbers and spaces.');
             $('#new_category').css('border-color', '#dc3545');
             return;
         }
         
-        // Disable button to prevent double submission
-        $(this).prop('disabled', true);
+        // Disable button
+        $(this).prop('disabled', true).text('Adding...');
         
-        // Use the form.js helper function
-        submitForm(
-            'addCategoryForm',
-            '/rentacar/api/categories',
-            'POST',
-            { name: categoryName },
+        // Add category via Ajax
+        CategoryAjax.addCategory(name, 
             function(response) { // Success callback
-                console.log('Category added:', response);
-                
-                // Re-enable button
-                $('#addCategoryBtn').prop('disabled', false);
+                $('#addCategoryBtn').prop('disabled', false).text('Add Category');
                 
                 if (response.status === 'success') {
+                    // Show success message
                     $('#carResponseMsg')
                         .removeClass('error')
                         .addClass('success')
                         .text('Category added successfully!')
                         .show();
                     
+                    // Clear input and hide section
                     $('#new_category').val('');
                     $('#new_category').css('border-color', '');
-                    loadCategories();
                     $('.new-category-group').slideUp(200);
+                    
+                    // Reload categories dropdown
+                    CategoryAjax.loadCategories('#category_id');
                     $('#category_id').val('');
                     
+                    // Hide success message after 2 seconds
                     setTimeout(function() {
                         $('#carResponseMsg').fadeOut();
                     }, 2000);
@@ -139,35 +100,17 @@ $(document).ready(function() {
                     $('#new_category').css('border-color', '#dc3545');
                 }
             },
-            function(xhr, status, error) { // Error callback
-                console.error('Error adding category:', error);
-                
-                // Re-enable button
-                $('#addCategoryBtn').prop('disabled', false);
+            function(xhr) { // Error callback
+                $('#addCategoryBtn').prop('disabled', false).text('Add Category');
                 
                 let errorMessage = 'Failed to add category';
-                
-                // Try to get error message from response
-                if (xhr.responseJSON) {
-                    errorMessage = xhr.responseJSON.message || errorMessage;
-                } else {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        errorMessage = response.message || errorMessage;
-                    } catch(e) {
-                        if (xhr.status === 409) {
-                            errorMessage = 'Category already exists';
-                        } else if (xhr.status === 400) {
-                            errorMessage = 'Invalid category name. Only letters, numbers and spaces are allowed.';
-                        }
-                    }
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
                 }
                 
-                // DISPLAY ERROR MESSAGE IN UI
                 $('.newCategoryError').text(errorMessage);
                 $('#new_category').css('border-color', '#dc3545');
                 
-                // Also show in main response message
                 $('#carResponseMsg')
                     .removeClass('success')
                     .addClass('error')
@@ -182,13 +125,15 @@ $(document).ready(function() {
     });
     
     // ============================================
-    // ADD CAR FORM - USING FORM.JS
+    // ADD CAR FORM
     // ============================================
     $('#addCarForm').on('submit', function(e) {
         e.preventDefault();
         
+        // Get selected category
         const selectedCategory = $('#category_id').val();
         
+        // Validate category
         if (selectedCategory === 'new') {
             $('.categoryError').text('Please add the new category first or select an existing one');
             return false;
@@ -199,14 +144,17 @@ $(document).ready(function() {
             return false;
         }
         
+        // Clear previous messages
         $('#carResponseMsg').removeClass('success error').hide();
         $('.error-text').text('');
         
+        // Get form values
         const title = $('#title').val().trim();
         const description = $('#description').val().trim();
         const price = $('#price_per_day').val();
         const imageFile = $('#image')[0].files[0];
         
+        // Validate form fields
         let isValid = true;
         
         if (!title) {
@@ -231,41 +179,34 @@ $(document).ready(function() {
         
         if (!isValid) return false;
         
-        // Disable submit button
-        $('#addCarBtn').prop('disabled', true);
+        // Disable button
+        $('#addCarBtn').prop('disabled', true).text('Adding Car...');
         
-        // Create FormData for file upload
-        const formData = new FormData(this);
-        
-        // Convert FormData to plain object for form.js
-        const formDataObj = {};
-        formData.forEach((value, key) => {
-            formDataObj[key] = value;
-        });
-        
-        // Use the form.js helper function
-        submitForm(
-            'addCarForm',
-            '/rentacar/api/cars',
-            'POST',
-            formDataObj,
+        // Add car via Ajax
+        CarAjax.addCar(this, 
             function(response) { // Success callback
-                console.log('Car added:', response);
-                
-                // Re-enable button
-                $('#addCarBtn').prop('disabled', false);
+                $('#addCarBtn').prop('disabled', false).text('Add Car');
                 
                 if (response.status === 'success') {
+                    // Show success message
                     $('#carResponseMsg')
                         .removeClass('error')
                         .addClass('success')
                         .text('Car added successfully!')
                         .show();
                     
+                    // Reset form
                     $('#addCarForm')[0].reset();
                     $('#imagePreview').empty();
-                    loadUserCars();
                     
+                    // Reload cars list
+                    CarAjax.loadCars('all', function(res) {
+                        if (res.status === 'success') {
+                            displayCars(res.data);
+                        }
+                    });
+                    
+                    // Hide success message after 3 seconds
                     setTimeout(function() {
                         $('#carResponseMsg').fadeOut();
                     }, 3000);
@@ -277,17 +218,15 @@ $(document).ready(function() {
                         .show();
                 }
             },
-            function(xhr, status, error) { // Error callback
-                console.error('Error adding car:', error);
-                
-                // Re-enable button
-                $('#addCarBtn').prop('disabled', false);
+            function(xhr) { // Error callback
+                $('#addCarBtn').prop('disabled', false).text('Add Car');
                 
                 let errorMessage = 'Failed to add car';
                 
                 if (xhr.responseJSON) {
                     errorMessage = xhr.responseJSON.message || errorMessage;
                     
+                    // Display field-specific errors
                     if (xhr.responseJSON.errors) {
                         if (xhr.responseJSON.errors.title) $('.titleError').text(xhr.responseJSON.errors.title[0]);
                         if (xhr.responseJSON.errors.description) $('.descriptionError').text(xhr.responseJSON.errors.description[0]);
@@ -296,11 +235,6 @@ $(document).ready(function() {
                         if (xhr.responseJSON.errors.image) $('.imageError').text(xhr.responseJSON.errors.image[0]);
                         return;
                     }
-                } else {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        errorMessage = response.message || errorMessage;
-                    } catch(e) {}
                 }
                 
                 $('#carResponseMsg')
@@ -313,31 +247,7 @@ $(document).ready(function() {
     });
     
     // ============================================
-    // LOAD USER CARS
-    // ============================================
-    function loadUserCars(filter = 'all') {
-        $('#carsList').html('<div class="loading-spinner">Loading cars...</div>');
-        
-        $.ajax({
-            url: '/rentacar/api/cars',
-            type: 'GET',
-            data: { filter: filter },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    displayCars(response.data);
-                } else {
-                    $('#carsList').html('<div class="no-cars">No cars found</div>');
-                }
-            },
-            error: function() {
-                $('#carsList').html('<div class="error-message">Failed to load cars</div>');
-            }
-        });
-    }
-    
-    // ============================================
-    // DISPLAY CARS
+    // DISPLAY CARS FUNCTION
     // ============================================
     function displayCars(cars) {
         if (!cars || cars.length === 0) {
@@ -350,22 +260,39 @@ $(document).ready(function() {
         cars.forEach(function(car) {
             const statusClass = car.active == 1 ? 'active' : 'inactive';
             const statusText = car.active == 1 ? 'Active' : 'Inactive';
-            const imageUrl = car.image_path || '/rentacar/public/images/default-car.jpg';
+            
+            // Fix the image path
+            let imageUrl = car.image_path;
+            if (imageUrl) {
+                // If image path doesn't start with http or /, add /rentacar/
+                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/rentacar')) {
+                    imageUrl = '/rentacar' + (imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl);
+                }
+            } else {
+                // Default image if no image path
+                imageUrl = '/rentacar/public/images/default-car.jpg';
+            }
+            
+            // Truncate description if too long
+            const shortDescription = car.description.length > 100 
+                ? car.description.substring(0, 100) + '...' 
+                : car.description;
             
             html += `
                 <div class="car-card" data-id="${car.id}">
                     <div class="car-image">
-                        <img src="${imageUrl}" alt="${escapeHtml(car.title)}">
+                        <img src="${imageUrl}" alt="${escapeHtml(car.title)}" 
+                             onerror="this.src='/rentacar/public/images/default-car.jpg'">
                     </div>
                     <div class="car-details">
                         <div class="car-title">
                             <h3>${escapeHtml(car.title)}</h3>
                             <span class="car-status ${statusClass}">${statusText}</span>
                         </div>
-                        <p class="car-description">${escapeHtml(car.description.substring(0, 100))}...</p>
+                        <p class="car-description">${escapeHtml(shortDescription)}</p>
                         <div class="car-meta">
-                            <span class="car-price">$${car.price_per_day}/day</span>
-                            <span class="car-category">${escapeHtml(car.category_name)}</span>
+                            <span class="car-price">$${parseFloat(car.price_per_day).toFixed(2)}/day</span>
+                            <span class="car-category">${escapeHtml(car.category_name || 'Uncategorized')}</span>
                         </div>
                     </div>
                 </div>
@@ -374,15 +301,6 @@ $(document).ready(function() {
         
         $('#carsList').html(html);
     }
-    
-    // ============================================
-    // FILTER BUTTONS
-    // ============================================
-    $('.filter-btn').on('click', function() {
-        $('.filter-btn').removeClass('active');
-        $(this).addClass('active');
-        loadUserCars($(this).data('filter'));
-    });
     
     // ============================================
     // HELPER: ESCAPE HTML
@@ -395,11 +313,28 @@ $(document).ready(function() {
     }
     
     // ============================================
+    // FILTER BUTTONS
+    // ============================================
+    $('.filter-btn').on('click', function() {
+        $('.filter-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        const filter = $(this).data('filter');
+        
+        CarAjax.loadCars(filter, function(res) {
+            if (res.status === 'success') {
+                displayCars(res.data);
+            }
+        });
+    });
+    
+    // ============================================
     // IMAGE PREVIEW
     // ============================================
     $('#image').on('change', function() {
         const file = this.files[0];
         if (file) {
+            // Validate file type
             const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
             if (!validTypes.includes(file.type)) {
                 $('.imageError').text('Please select a valid image file (JPEG, PNG, GIF)');
@@ -408,6 +343,7 @@ $(document).ready(function() {
                 return;
             }
             
+            // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 $('.imageError').text('Image size should be less than 5MB');
                 $(this).val('');
@@ -417,9 +353,10 @@ $(document).ready(function() {
             
             $('.imageError').text('');
             
+            // Show image preview
             const reader = new FileReader();
             reader.onload = function(e) {
-                $('#imagePreview').html(`<img src="${e.target.result}" style="max-width:100%; border-radius:8px;">`);
+                $('#imagePreview').html(`<img src="${e.target.result}" style="max-width:100%; max-height:200px; border-radius:8px; margin-top:10px;">`);
             };
             reader.readAsDataURL(file);
         } else {
@@ -438,8 +375,11 @@ $(document).ready(function() {
     });
     
     // ============================================
-    // INITIAL LOAD
+    // LOAD CARS ON PAGE LOAD
     // ============================================
-    loadCategories();
-    loadUserCars();
+    CarAjax.loadCars('all', function(res) {
+        if (res.status === 'success') {
+            displayCars(res.data);
+        }
+    });
 });
